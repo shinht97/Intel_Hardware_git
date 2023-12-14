@@ -1,0 +1,10 @@
+14:03:23 **** Incremental Build of configuration Debug for project SERVO_MOTER ****
+make -j4 all 
+arm-none-eabi-size   SERVO_MOTER.elf 
+   text	   data	    bss	    dec	    hex	filename
+  13988	     20	   1716	  15724	   3d6c	SERVO_MOTER.elf
+Finished building: default.size.stdout
+ 
+
+14:03:24 Build Finished. 0 errors, 0 warnings. (took 502ms)
+

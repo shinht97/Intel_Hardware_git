@@ -1,0 +1,10 @@
+11:17:26 **** Incremental Build of configuration Debug for project FAN ****
+make -j4 all 
+arm-none-eabi-size   FAN.elf 
+   text	   data	    bss	    dec	    hex	filename
+   9764	     20	   1644	  11428	   2ca4	FAN.elf
+Finished building: default.size.stdout
+ 
+
+11:17:27 Build Finished. 0 errors, 0 warnings. (took 459ms)
+

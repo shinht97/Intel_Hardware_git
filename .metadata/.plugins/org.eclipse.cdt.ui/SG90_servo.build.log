@@ -1,0 +1,10 @@
+14:41:54 **** Incremental Build of configuration Debug for project SG90_servo ****
+make -j4 all 
+arm-none-eabi-size   SG90_servo.elf 
+   text	   data	    bss	    dec	    hex	filename
+  14144	     20	   1716	  15880	   3e08	SG90_servo.elf
+Finished building: default.size.stdout
+ 
+
+14:41:54 Build Finished. 0 errors, 0 warnings. (took 405ms)
+

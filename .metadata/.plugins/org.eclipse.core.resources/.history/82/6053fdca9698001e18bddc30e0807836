@@ -1,0 +1,35 @@
+/*
+ * delay.c
+ *
+ *  Created on: Dec 12, 2023
+ *      Author: Administrator1
+ */
+
+#include "delay.h"
+
+void my_Delay(int _interval) // make some msec delay, _interval : msec
+{
+	// htim5 is struct
+
+	int start = htim5.Instance->CNT;
+
+//	while(1)
+//	{
+//		int cur = htim5.Instance->CNT;
+//
+//		if((cur - start) == _interval)
+//		{
+//			break;
+//		}
+//	}
+//
+//	return;
+
+	while(1)
+	{
+		if((htim5.Instance->CNT - start) > _interval)
+		{
+			return;
+		}
+	} // 최적화
+}

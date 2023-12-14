@@ -1,0 +1,13 @@
+/*
+ * delay.h
+ *
+ *  Created on: Dec 12, 2023
+ *      Author: Administrator1
+ */
+
+#ifndef INC_DELAY_H_
+#define INC_DELAY_H_
+
+void my_Delay(int _interval, TIM_HandleTypeDef* _htim);
+
+#endif /* INC_DELAY_H_ */

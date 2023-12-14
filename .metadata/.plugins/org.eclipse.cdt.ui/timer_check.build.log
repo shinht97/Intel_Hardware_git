@@ -1,0 +1,49 @@
+19:12:30 **** Incremental Build of configuration Debug for project timer_check ****
+make -j4 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F411xE -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+In file included from ../Core/Src/main.c:27:
+../Core/Src/../../../myLib/Src/myLib.c: In function '__io_putchar':
+../Core/Src/../../../myLib/Src/myLib.c:15:36: warning: passing argument 2 of 'HAL_UART_Transmit' from incompatible pointer type [-Wincompatible-pointer-types]
+   15 |         HAL_UART_Transmit(&huart2, &_c, 1, 10);
+      |                                    ^~~
+      |                                    |
+      |                                    int *
+In file included from ../Core/Inc/stm32f4xx_hal_conf.h:411,
+                 from ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:29,
+                 from ../Core/Inc/main.h:30,
+                 from ../Core/Src/main.c:20:
+../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:745:79: note: expected 'const uint8_t *' {aka 'const unsigned char *'} but argument is of type 'int *'
+  745 | HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, const uint8_t *pData, uint16_t Size, uint32_t Timeout);
+      |                                                                ~~~~~~~~~~~~~~~^~~~~
+../Core/Src/main.c: In function 'main':
+../Core/Src/main.c:97:3: warning: implicit declaration of function 'printf' [-Wimplicit-function-declaration]
+   97 |   printf("program start..... \r\n");
+      |   ^~~~~~
+../Core/Src/main.c:28:1: note: include '<stdio.h>' or provide a declaration of 'printf'
+   27 | #include "../../../myLib/Src/myLib.c"
+  +++ |+#include <stdio.h>
+   28 | /* USER CODE END Includes */
+../Core/Src/main.c:97:3: warning: incompatible implicit declaration of built-in function 'printf' [-Wbuiltin-declaration-mismatch]
+   97 |   printf("program start..... \r\n");
+      |   ^~~~~~
+../Core/Src/main.c:97:3: note: include '<stdio.h>' or provide a declaration of 'printf'
+../Core/Src/main.c:108:31: warning: format '%d' expects argument of type 'int', but argument 2 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  108 |   printf("end of operation : %d\r\n", htim2.Instance->CNT);
+      |                              ~^       ~~~~~~~~~~~~~~~~~~~
+      |                               |                     |
+      |                               int                   uint32_t {aka long unsigned int}
+      |                              %ld
+arm-none-eabi-gcc -o "timer_check.elf" @"objects.list"   -mcpu=cortex-m4 -T"I:\Edge_Project\Embedded_project\workspace_intel\ARM\timer_check\STM32F411RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="timer_check.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: timer_check.elf
+ 
+arm-none-eabi-size  timer_check.elf 
+arm-none-eabi-objdump -h -S timer_check.elf  > "timer_check.list"
+   text	   data	    bss	    dec	    hex	filename
+  14564	    112	   2048	  16724	   4154	timer_check.elf
+Finished building: default.size.stdout
+ 
+Finished building: timer_check.list
+ 
+
+19:12:32 Build Finished. 0 errors, 4 warnings. (took 1s.500ms)
+
