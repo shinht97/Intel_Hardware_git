@@ -1,0 +1,570 @@
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file           : main.c
+  * @brief          : Main program body
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2023 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  */
+/* USER CODE END Header */
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+#include "dma.h"
+#include "tim.h"
+#include "usart.h"
+#include "gpio.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+#include <string.h>
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+
+//#define LED
+//#define INTERRUPT
+//#define DMA
+#define BT
+#define RX_BUF_SIZE	100
+
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+
+/* USER CODE BEGIN PV */
+
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+/* USER CODE BEGIN PFP */
+
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+int __io_putchar(int _ch) // printf
+{
+	// console output function
+
+	HAL_UART_Transmit(&huart2, &_ch, 1, 10); // 1byte transfer
+	// &ch is stack pointer(ch's data address)
+
+	return _ch;
+}
+
+int __io_getchar(void) // console input (scanf)
+{
+	// receive data function
+
+	char ch = 0;
+
+	while(1)
+	{
+		// stay until input
+
+		HAL_StatusTypeDef r = HAL_UART_Receive(&huart2, &ch, 1, 10);
+
+		if(r == HAL_OK)
+		{
+			break;
+		}
+	}
+
+//	while(HAL_UART_Receive(&huart2, &ch, 1, 10) != HAL_OK)
+//	{
+//
+//	}
+
+	HAL_UART_Transmit(&huart2, &ch, 1, 10); // echo from input
+
+	return ch;
+}
+
+int scanfEx1(int* _k)
+{
+	unsigned char buff[10], c; // tmp storage
+
+	int idx = 0;
+
+//	while((c = __io_getchar()) != '0x0d') // '0x0d' is \r(enter)
+//	{
+//		buff[idx++] = c;
+//	}
+
+	while(1)
+	{
+		c = __io_getchar(); // read 1 byte
+
+		if(c == 0x0d) // if last byte is "\r"
+		{
+			break;
+		}
+
+		if(c < '0' || c > '9')
+		{
+			break;
+		}
+
+		if(idx > 9)
+		{
+			break;
+		}
+
+		buff[idx++] = c;
+	}
+
+	buff[idx] = 0; // make last buff[idx] 'null(0)'
+
+	*_k = atoi(buff);
+
+	return 1;
+}
+
+int GetKey()	// interface function
+{
+	return __io_getchar();
+}
+
+#ifdef LED
+char key;
+
+void LED_CONTROL()
+{
+	printf("Input \"R\", \"G\", \"Y\" to turn on LED\r\n");
+
+	key = GetKey();
+
+	switch (key)
+	{
+	  case 'R':
+	  case 'r':
+		  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_10);
+		  HAL_Delay(500);
+
+		  break;
+	  case 'G':
+	  case 'g':
+		  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_8);
+		  HAL_Delay(500);
+
+		  break;
+	  case 'Y':
+	  case 'y':
+		  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_9);
+		  HAL_Delay(500);
+
+		  break;
+	  default:
+		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, 0);
+		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, 0);
+		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_9, 0);
+
+		  printf("wrong entered %c\r\n", key);
+
+		  break;
+	}
+}
+#endif
+
+#ifdef INTERRUPT
+
+char rxBuff[RX_BUF_SIZE], rxTemp; // rxTemp : temp storage for received data
+int	rxIdx = 0;
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart) // it works one time
+{
+	// Receive part need buffer
+	rxBuff[rxIdx++] = rxTemp; // save received data in array;
+
+	HAL_UART_Receive_IT(&huart2, &rxTemp, sizeof(rxTemp));
+}
+#endif
+
+#ifdef DMA
+
+char rxBuff[RX_BUF_SIZE]; // circular memory
+char dmaBuff[RX_BUF_SIZE];
+int head = 0, tail = 0;
+
+char* GetDmaData() // uart2 dma function
+{
+	int len = 0;
+
+	tail = RX_BUF_SIZE - huart2.hdmarx->Instance->NDTR; // remain space in DMA buffer(register)
+
+	if(head == tail)
+	{
+		return 0;
+	}
+
+	if(tail > head)
+	{
+		memcpy(dmaBuff, rxBuff + head, tail - head);
+		// memcpy(target, source, size)
+		// rxBuff + head == &rxBuff[head]
+		len = tail - head;
+	}
+	else // tail < head => move pointer to bottom
+	{
+		memcpy(dmaBuff, rxBuff + head, RX_BUF_SIZE - head);
+		memcpy(dmaBuff + (RX_BUF_SIZE - head), rxBuff, tail); // save after first copy
+
+		len = RX_BUF_SIZE - head + tail;
+	}
+
+	dmaBuff[len] = 0; // null for last word in dmaBuff
+
+	head = tail;
+
+	return dmaBuff;
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	if(GPIO_Pin == B1_Pin)
+	{
+	  char* str = GetDmaData(); // str = NULL, if no data
+
+	  if(str)
+	  {
+		  printf("[Receive  Buffer] %s\r\n", rxBuff);
+		  printf("[Received String] %s\r\n", str);
+	  }
+	}
+}
+#endif
+
+#ifdef BT
+
+char rxBuff1[RX_BUF_SIZE], rxTemp; // uart1
+char rxBuff2[RX_BUF_SIZE];		   // uart2
+int rxIdx1 = 0, rxIdx2 = 0;
+char dmaBuff[RX_BUF_SIZE];
+int head = 0, tail = 0;
+
+int op = -1; // 0~3 : NULL, CR, CRLF, LFCR
+char* EL[] = {"\0", "\r", "\r\n", "\n\r"};
+
+char* GetDmaData()
+{
+	int len = 0;
+
+	tail = RX_BUF_SIZE - huart2.hdmarx->Instance->NDTR; // remain space in DMA buffer(register)
+
+	if(head == tail)
+	{
+		return 0;
+	}
+
+	if(tail > head)
+	{
+		memcpy(dmaBuff, rxBuff2 + head, tail - head);
+		// memcpy(target, source, size)
+		// rxBuff + head == &rxBuff[head]
+		len = tail - head;
+	}
+	else // tail < head => move pointer to bottom
+	{
+		memcpy(dmaBuff, rxBuff2 + head, RX_BUF_SIZE - head);
+		memcpy(dmaBuff + (RX_BUF_SIZE - head), rxBuff2, tail); // save after first copy
+
+		len = RX_BUF_SIZE - head + tail;
+	}
+
+	dmaBuff[len] = 0; // null for last word in dmaBuff
+
+	head = tail;
+
+	return dmaBuff;
+}
+
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart) // it works one time
+														// all uart1, 2, 6 call this function at interrupt
+{
+	if(huart->Instance == huart1.Instance) // if data from uart1(BT)
+	{
+		rxBuff1[rxIdx1++] = rxTemp;
+
+		if(rxTemp == 0 || rxTemp == '\r' || rxTemp == '\n') // end of sentence? ('\r', '\n', '\0')
+		{
+			HAL_UART_Transmit(&huart2, rxBuff1, rxIdx1, 10); // transfer data to uart2(to show in console)
+			HAL_UART_Transmit(&huart2, "\r\n", 2, 10); // output cr+lf in console
+
+			rxIdx1 = 0; // reset idx1
+		}
+	}
+	else if(huart->Instance == huart2.Instance)
+	{
+		rxBuff2[rxIdx2++] = rxTemp;
+
+		if(rxTemp == '\0' || rxTemp == '\r' || rxTemp == '\n') // end of sentence? ('\r', '\n', '\0')
+		{
+			// BT>AT???? form command
+			if(strncmp(rxBuff2, "BT>", 3) == 0)
+			{
+				HAL_UART_Transmit(&huart1, rxBuff2 + 3, rxIdx2 - 4, 10); // transfer data to uart1(to control BT)
+				HAL_UART_Transmit(&huart1, EL[op], strlen(EL[op]), 10); // end of command
+
+				HAL_UART_Transmit(&huart2, rxBuff2 + 3, rxIdx2 - 4, 10); // transfer data to uart2(to show in console)
+				HAL_UART_Transmit(&huart2, EL[op], strlen(EL[op]), 10); // end of command
+			}
+			else // other input
+			{
+				// just echo now
+
+				HAL_UART_Transmit(&huart2, rxBuff2, rxIdx2, 10); // transfer data to uart2(to show in console)
+				HAL_UART_Transmit(&huart2, "\r\n", 2, 10); // output cr+lf in console
+			}
+
+			rxIdx2 = 0; // reset idx2
+		}
+	}
+
+	HAL_UART_Receive_IT(huart, &rxTemp, sizeof(rxTemp)); // make ready for next interrupt
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
+{
+//	char* str = GetDmaData();
+//
+//	if(str)
+//	{
+//		printf("%s\r\n", str);
+//	}
+
+	if(htim->Instance = htim3.Instance)
+	{
+
+	}
+}
+
+#endif
+
+/* USER CODE END 0 */
+
+/**
+  * @brief  The application entry point.
+  * @retval int
+  */
+int main(void)
+{
+  /* USER CODE BEGIN 1 */
+
+  /* USER CODE END 1 */
+
+  /* MCU Configuration--------------------------------------------------------*/
+
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
+
+  /* USER CODE BEGIN Init */
+
+  /* USER CODE END Init */
+
+  /* Configure the system clock */
+  SystemClock_Config();
+
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
+
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_DMA_Init();
+  MX_USART2_UART_Init();
+  MX_USART1_UART_Init();
+  MX_TIM3_Init();
+  /* USER CODE BEGIN 2 */
+  printf("\033[1J\033[1;1HUART Program Start....!\r\n");
+
+#if defined INTERRUPT || defined DMA || defined LED
+
+  int k = 0;
+
+  while(1)
+  {
+		printf("Input '2' Key to Start\r\n");
+
+		scanfEx1(&k);
+
+		if(k == 2)
+		{
+			break;
+		}
+		else
+		{
+			printf("wrong entered %d\r\n", k);
+		}
+  }
+
+  printf("OK....!\r\n");
+#endif
+
+#ifdef INTERRUPT
+  HAL_UART_Receive_IT(&huart2, &rxTemp, sizeof(rxTemp)); // rxTemp == receive buffer
+  // interrupt with 1 byte received
+#endif
+
+#ifdef DMA
+  HAL_UART_Receive_DMA(&huart2, rxBuff, sizeof(rxBuff)); // sizeof(rxBuff) == RX_BUF_SIZE
+#endif
+
+#ifdef BT
+  while(1)
+  {
+	  printf("Input End-Line option\r\n");
+	  printf(" '0' : NULL\r\n");
+	  printf(" '1' : CR\r\n");
+	  printf(" '2' : CRLF\r\n");
+	  printf(" '3' : LFCR\r\n");
+
+	  scanfEx1(&op);
+
+	  if(op >= 0 && op < 4)
+		  break;
+  }
+
+  printf("ok...... %d\r\n", op);
+
+  HAL_UART_Receive_IT(&huart1, &rxTemp, sizeof(rxTemp));
+  HAL_UART_Receive_IT(&huart2, &rxTemp, sizeof(rxTemp));
+  // HAL_UART_Receive_DMA(&huart2, rxBuff, sizeof(rxBuff));
+  HAL_TIM_Base_Start_IT(&htim3);
+#endif
+
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+  while (1)
+  {
+
+#ifdef LED
+	  LED_CONTROL() // LED controlled by kbd
+#endif
+
+#ifdef INTERRUPT
+	  if(rxIdx)
+	  {
+		  rxBuff[rxIdx] = 0; // make rxBuff last word to '0';
+
+		  printf("[Received String] %s\r\n", rxBuff);
+
+		  rxIdx = 0;
+	  }
+
+	  HAL_Delay(1000);
+#endif
+
+
+
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
+  }
+  /* USER CODE END 3 */
+}
+
+/**
+  * @brief System Clock Configuration
+  * @retval None
+  */
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+  /** Configure the main internal regulator output voltage
+  */
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLM = 16;
+  RCC_OscInitStruct.PLL.PLLN = 336;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
+  RCC_OscInitStruct.PLL.PLLQ = 4;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/* USER CODE BEGIN 4 */
+
+/* USER CODE END 4 */
+
+/**
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
+  /* User can add his own implementation to report the HAL error return state */
+  __disable_irq();
+  while (1)
+  {
+  }
+  /* USER CODE END Error_Handler_Debug */
+}
+
+#ifdef  USE_FULL_ASSERT
+/**
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
+void assert_failed(uint8_t *file, uint32_t line)
+{
+  /* USER CODE BEGIN 6 */
+  /* User can add his own implementation to report the file name and line number,
+     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  /* USER CODE END 6 */
+}
+#endif /* USE_FULL_ASSERT */

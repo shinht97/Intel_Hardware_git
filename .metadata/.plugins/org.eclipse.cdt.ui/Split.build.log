@@ -1,0 +1,56 @@
+20:15:20 **** Incremental Build of configuration Debug for project Split ****
+make -j4 all 
+arm-none-eabi-gcc "../Core/Src/freertos.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F411xE -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -I../Middlewares/Third_Party/FreeRTOS/Source/include -I../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS -I../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/freertos.d" -MT"Core/Src/freertos.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/freertos.o"
+../Core/Src/freertos.c: In function 'MX_FREERTOS_Init':
+../Core/Src/freertos.c:95:29: warning: passing argument 2 of 'HAL_ADC_Start_DMA' from incompatible pointer type [-Wincompatible-pointer-types]
+   95 |   HAL_ADC_Start_DMA(&hadc1, dValue, sizeof(short));
+      |                             ^~~~~~
+      |                             |
+      |                             short int *
+In file included from ../Core/Inc/stm32f4xx_hal_conf.h:295,
+                 from ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:29,
+                 from ../Core/Inc/main.h:30,
+                 from ../Core/Src/freertos.c:23:
+../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_adc.h:594:72: note: expected 'uint32_t *' {aka 'long unsigned int *'} but argument is of type 'short int *'
+  594 | HAL_StatusTypeDef HAL_ADC_Start_DMA(ADC_HandleTypeDef *hadc, uint32_t *pData, uint32_t Length);
+      |                                                              ~~~~~~~~~~^~~~~
+../Core/Src/freertos.c: In function 'StartTask01':
+../Core/Src/freertos.c:161:19: warning: implicit declaration of function 'printf' [-Wimplicit-function-declaration]
+  161 |                   printf("\033[3;1HTask1 ..... %d \r\n", n++);
+      |                   ^~~~~~
+../Core/Src/freertos.c:31:1: note: include '<stdio.h>' or provide a declaration of 'printf'
+   30 | #include "tim.h"
+  +++ |+#include <stdio.h>
+   31 | /* USER CODE END Includes */
+../Core/Src/freertos.c:161:19: warning: incompatible implicit declaration of built-in function 'printf' [-Wbuiltin-declaration-mismatch]
+  161 |                   printf("\033[3;1HTask1 ..... %d \r\n", n++);
+      |                   ^~~~~~
+../Core/Src/freertos.c:161:19: note: include '<stdio.h>' or provide a declaration of 'printf'
+../Core/Src/freertos.c:165:19: warning: implicit declaration of function 'myDelay'; did you mean 'osDelay'? [-Wimplicit-function-declaration]
+  165 |                   myDelay(500 * 100);
+      |                   ^~~~~~~
+      |                   osDelay
+../Core/Src/freertos.c: In function 'StartTask02':
+../Core/Src/freertos.c:191:19: warning: incompatible implicit declaration of built-in function 'printf' [-Wbuiltin-declaration-mismatch]
+  191 |                   printf("\033[5;1HTask2 .... %d \r\n", n++);
+      |                   ^~~~~~
+../Core/Src/freertos.c:191:19: note: include '<stdio.h>' or provide a declaration of 'printf'
+../Core/Src/freertos.c: In function 'LED_ON':
+../Core/Src/freertos.c:221:19: warning: incompatible implicit declaration of built-in function 'printf' [-Wbuiltin-declaration-mismatch]
+  221 |                   printf("\033[7;1HTask3 .... %d \r\n", n++);
+      |                   ^~~~~~
+../Core/Src/freertos.c:221:19: note: include '<stdio.h>' or provide a declaration of 'printf'
+arm-none-eabi-gcc -o "Split.elf" @"objects.list"   -mcpu=cortex-m4 -T"I:\Edge_Project\Embedded_project\workspace_intel\ARM\Split\STM32F411RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Split.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: Split.elf
+ 
+arm-none-eabi-size  Split.elf 
+arm-none-eabi-objdump -h -S Split.elf  > "Split.list"
+   text	   data	    bss	    dec	    hex	filename
+  33452	    116	  18756	  52324	   cc64	Split.elf
+Finished building: default.size.stdout
+ 
+Finished building: Split.list
+ 
+
+20:15:22 Build Finished. 0 errors, 6 warnings. (took 2s.62ms)
+
